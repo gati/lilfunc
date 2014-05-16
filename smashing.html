@@ -1,0 +1,147 @@
+<html>
+<head>
+
+</head>
+<body>
+  <div id="bubble-graph"></div>
+
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.4.6/d3.min.js"></script>
+  <script>
+
+    // Should really be called divideTwoNumbers
+    function average(total, count) {
+      return count / total;
+    }
+
+    function averageForArray(arr) {
+      return average(arr.length, totalForArray(arr));
+    }
+
+    // Gets the value associated with the property of an object. Intended for 
+    // use with a collection method like map, hence the generator.
+    function getItem(propertyName) {
+      return function(item) {
+        if(item && item.hasOwnProperty(propertyName)) {
+          return item[propertyName];
+        }
+        else {
+          return null;
+        }
+      }
+    }
+
+    // A specific implementation of map, when you have an array of objects and 
+    // want an array of values associated with a specific property of every object.
+    function pluck(arr, propertyName) {
+      return arr.map(getItem(propertyName));
+    }
+
+    // Take two arrays and return a single array of [x1,y1],[x2,y2] pairs
+    function combineArrays(arr1, arr2, finalArr) {
+      // Just in case both arr1 and arr2 were empty to begin with, we might only 
+      // call this function once.
+      finalArr = finalArr || [];
+
+      // Push the current element in each array into what we'll eventually return
+      finalArr.push([arr1.shift(), arr2.shift()]);
+
+      // If both arrays are empty, then we're done
+      if(arr1.length === 0 && arr2.length === 0) {
+        return finalArr;
+      }
+      else {
+        // Recursion!
+        return combineArrays(arr1, arr2, finalArr);
+      }
+    };
+
+    function makeTupleCount(keys, arr) {
+      // for each of the unique tagNames
+      return keys.map(function(key) {
+        return [
+          key,
+          // find all the elements in the full list of tag names that match this key
+          // and count the size of the returned array
+          arr.filter(function(item) { return item === key; }).length
+        ]
+      });
+
+    }
+
+    // width of chart
+    var diameter = 960, 
+        format = d3.format(",d"),
+        // creates an ordinal scale with 20 colors. See D3 docs for hex values
+        color = d3.scale.category20c();
+
+    // chart object to which we'll be adding data
+    var bubble = d3.layout.pack()
+      .sort(null)
+      .size([diameter, diameter])
+      .padding(1.5);
+
+    // add an svg to the DOM that our pack object will use to draw the 
+    // visualization
+    var svg = d3.select("#bubble-graph").append("svg")
+      .attr("width", diameter)
+      .attr("height", diameter)
+      .attr("class", "bubble");
+
+
+    function setGraphData(data) {
+      var node = svg.selectAll(".node")
+        // Here's where we pass our data to the pack object
+        .data(bubble.nodes(data)
+        .filter(function(d) { return !d.children; }))
+        .enter().append("g")
+        .attr("class", "node")
+        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+
+      // Append a circle for each tag name
+      node.append("circle")
+        .attr("r", function(d) { return d.r; })
+        .style("fill", function(d) { return color(d.className); });
+
+      // Add a label to each circle, using the tag name as the label's text
+      node.append("text")
+        .attr("dy", ".3em")
+        .style("text-anchor", "middle")
+        .style("font-size", "12px")
+        .text(function(d) { return d.className } ); 
+    }
+
+    function processData(dataResponse) {
+      var tagNames = pluck(_.flatten(pluck(dataResponse.data, 'tags')), 'name');
+      var tagNamesUnique = _.compact(_.uniq(tagNames));
+
+      return {
+        children: makeTupleCount(tagNamesUnique, tagNames).map(function(tagTuple) {
+          return {
+            className: tagTuple[0],
+            package: "cluster",
+            value: tagTuple[1]
+          }
+        })
+      }
+    
+    }
+
+    function updateGraph(dataResponse) {
+      setGraphData(processData(dataResponse));
+    }
+
+    var dataRequest = $.ajax({
+      url: 'http://devapi.crisis.net/item?limit=100',
+      dataType: "json",
+      beforeSend: function(xhr) {
+        xhr.setRequestHeader('Authorization', 'Bearer 537656158d531d3c5664d6a6');
+      }
+    });
+
+    dataRequest.done( updateGraph );
+
+  </script>
+</body>
+</html>
