@@ -57,7 +57,7 @@
       }
     };
 
-    function makeTupleCount(keys, arr) {
+    function makeArrayCount(keys, arr) {
       // for each of the unique tagNames
       return keys.map(function(key) {
         return [
@@ -117,11 +117,11 @@
       var tagNamesUnique = _.compact(_.uniq(tagNames));
 
       return {
-        children: makeTupleCount(tagNamesUnique, tagNames).map(function(tagTuple) {
+        children: makeArrayCount(tagNamesUnique, tagNames).map(function(tagArray) {
           return {
-            className: tagTuple[0],
+            className: tagArray[0],
             package: "cluster",
-            value: tagTuple[1]
+            value: tagArray[1]
           }
         })
       }
