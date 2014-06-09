@@ -132,13 +132,8 @@
       setGraphData(processData(dataResponse));
     }
 
-    var dataRequest = $.ajax({
-      url: 'http://devapi.crisis.net/item?limit=100',
-      dataType: "json",
-      beforeSend: function(xhr) {
-        xhr.setRequestHeader('Authorization', 'Bearer 537656158d531d3c5664d6a6');
-      }
-    });
+    var apikey = // Get your key at http://api.crisis.net
+    var dataRequest = $.get('http://api.crisis.net/item?limit=100&apikey='+apikey);
 
     dataRequest.done( updateGraph );
 
